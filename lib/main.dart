@@ -10,7 +10,7 @@ import './Detail.dart';
 void main() {
   runApp(MaterialApp(
     title: "MY APP",
-    home: new Home(),
+    home: Home(),
   ));
 }
 
@@ -18,35 +18,142 @@ class Home extends StatefulWidget {
   const Home({Key? key}) : super(key: key);
 
   @override
-  _HomeState createState() => new _HomeState();
+  _HomeState createState() => _HomeState();
 }
 
 class _HomeState extends State<Home> {
-
-  Future<List> getData() async {
-    final response = await http.get(Uri.parse("http://192.168.0.102/api/conn2.php"));
-
-    return json.decode(response.body);
+  late final Map m;
+  TextEditingController controller = TextEditingController();
+  Future<Null> getData() async {
+    final response = await http.get(Uri.parse(url));
+    final responseJson = json.decode(response.body);
+    setState(() {
+      for (Map user in responseJson) {
+        _userDetails.add(_ArticleDescription.fromJson(user));
+      }
+    });
 
   }
+  @override
+  void initState() {
+
+
+    super.initState();
+
+    getData();
+  }
+
 
 
   @override
   Widget build(BuildContext context) {
-    return new Scaffold(
-        appBar: new AppBar(
-          title: new Text("MY APP"),
-        ),
+    return Scaffold(
+      appBar: AppBar(
+        title: Text("MY APP"),
+      ),
 
-        body:Center(
-            child: ListSearch()
-        )
+      body: Column(
+        children: <Widget>[
+          Container(
+            color: Theme.of(context).primaryColor,
+            child: Padding(
+              padding: const EdgeInsets.all(8.0),
+              child: Card(
+                child: ListTile(
 
+                  leading: Icon(Icons.search),
+                  title: TextField(
+                    controller: controller,
+                    decoration: InputDecoration(
+                        hintText: 'Search', border: InputBorder.none),
+                    onChanged: onSearchTextChanged,
+                  ),
+                  trailing: IconButton(icon: Icon(Icons.cancel), onPressed: () {
+                    controller.clear();
+                    onSearchTextChanged('');
+                  },),
+                ),
+              ),
+            ),
+          ),
+          Expanded(
+            child: _searchResult.length != 0 || controller.text.isNotEmpty
+                ? ListView.builder(
+              itemCount: _searchResult.length,
+              itemBuilder: (context, i) {
 
+                return Container(
+                  padding: const EdgeInsets.all(10.0),
+
+                child: new GestureDetector(
+                onTap: ()=>Navigator.of(context).push(
+                new MaterialPageRoute(
+                builder: (BuildContext context)=> new Detail( list: _searchResult, index: i,)
+                )
+                ),
+                child: new Card(
+
+                child: CustomListItemTwo(
+                    thumbnail: Container(
+                      decoration: const BoxDecoration(color: Colors.blue),
+                    ),
+
+                    articles: (_searchResult[i].articles),
+                    features: (_searchResult[i].features),
+                    features2: (_searchResult[i].features2),
+                    //description: (list[i]['Description']),
+
+                  ),
+                ),
+                ),
+
+                 // margin: const EdgeInsets.all(0.0),
+                );
+              },
+            )
+                : ListView.builder(
+              itemCount: _userDetails.length,
+              itemBuilder: (context, index) {
+                return Card(
+                  child: CustomListItemTwo(
+                    thumbnail: Container(
+                      decoration: const BoxDecoration(color: Colors.blue),
+                    ),
+
+                    articles: (_userDetails[index].articles),
+                    features: (_userDetails[index].features),
+                    features2: (_userDetails[index].features2),
+                    //description: (list[i]['Description']),
+
+                  ),
+                //  margin: const EdgeInsets.all(0.0),
+                );
+              },
+            ),
+          ),
+
+        ],
+      ),
     );
   }
-}
 
+  onSearchTextChanged(String text) async {
+    _searchResult.clear();
+    if (text.isEmpty) {
+      setState(() {});
+      return;
+    }
+
+    _userDetails.forEach((userDetail) {
+      if (userDetail.articles.toUpperCase().contains(text.toUpperCase()) || userDetail.features.toUpperCase().contains(text.toUpperCase())
+          ||userDetail.features2.toUpperCase().contains(text.toUpperCase()))
+        _searchResult.add(userDetail);
+    });
+
+    setState(() {});
+  }
+}
+/*
 class ListSearch extends StatefulWidget {
   ListSearchState createState() => ListSearchState();
 }
@@ -62,7 +169,7 @@ class ListSearchState extends State<ListSearch> {
 
   onItemChanged(String value) {
     setState(() {
-
+     // var text = MyStatelessWidget(list: [],).list;
       newList=MyStatelessWidget(list: [],).list.where((string) => string.toLowerCase().contains(value.toLowerCase()))
           .toList();
     });
@@ -117,8 +224,12 @@ class ListSearchState extends State<ListSearch> {
       ),
     );
   }
-}
+}*/
+List<_ArticleDescription> _searchResult = [];
 
+List<_ArticleDescription> _userDetails = [];
+
+final String url = 'http://172.16.100.12/api/conn2.php';
 class _ArticleDescription extends StatelessWidget {
   const _ArticleDescription({
     Key? key,
@@ -133,7 +244,13 @@ class _ArticleDescription extends StatelessWidget {
   final String features;
   final String features2;
   // final String description;
-
+  factory _ArticleDescription.fromJson(Map<dynamic, dynamic> json) {
+    return _ArticleDescription(
+      articles: json['Articles'],
+      features: json['Features'],
+      features2: json['Features2'],
+    );
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -255,10 +372,10 @@ class MyStatelessWidget extends StatelessWidget {
         itemBuilder: (context, i) {
           return Container(
             padding: const EdgeInsets.all(10.0),
-            child: new GestureDetector(
+            child: GestureDetector(
               onTap: ()=>Navigator.of(context).push(
-                  new MaterialPageRoute(
-                      builder: (BuildContext context)=> new Detail(list:list , index: i,)
+                  MaterialPageRoute(
+                      builder: (BuildContext context)=> Detail(list:list , index: i,)
                   )
               ),
 
